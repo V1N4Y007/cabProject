@@ -7,14 +7,21 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+import { authHeader } from "./auth";
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: HeadersInit = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...authHeader()
+  };
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -30,6 +37,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
+      headers: authHeader(),
       credentials: "include",
     });
 
