@@ -35,6 +35,15 @@ export const getCurrentLocation = (): Promise<Location> => {
 
 // Calculate distance between two points in km using Haversine formula
 export const calculateDistance = (point1: Location, point2: Location): number => {
+  console.log("calculateDistance called with:", point1, point2);
+  
+  // Check if locations are valid
+  if (!point1 || !point2 || typeof point1.lat !== 'number' || typeof point1.lng !== 'number' || 
+      typeof point2.lat !== 'number' || typeof point2.lng !== 'number') {
+    console.error("Invalid location data for distance calculation", { point1, point2 });
+    return 0;
+  }
+  
   const R = 6371; // Earth radius in km
   const dLat = deg2rad(point2.lat - point1.lat);
   const dLng = deg2rad(point2.lng - point1.lng);
@@ -44,6 +53,8 @@ export const calculateDistance = (point1: Location, point2: Location): number =>
     Math.sin(dLng / 2) * Math.sin(dLng / 2); 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
   const distance = R * c; // Distance in km
+  
+  console.log("Calculated distance:", distance);
   return distance;
 };
 
@@ -54,10 +65,21 @@ const deg2rad = (deg: number): number => {
 
 // Estimate travel time based on distance
 export const estimateTravelTime = (distanceInKm: number): number => {
+  console.log("estimateTravelTime called with distance:", distanceInKm);
+  
+  // Ensure distance is valid
+  if (typeof distanceInKm !== 'number' || distanceInKm <= 0) {
+    console.error("Invalid distance for time estimation:", distanceInKm);
+    return 0;
+  }
+  
   // Assume average speed of 30 km/h in the city
   const averageSpeedKmH = 30;
   // Calculate time in minutes
-  return Math.round((distanceInKm / averageSpeedKmH) * 60);
+  const timeInMinutes = Math.round((distanceInKm / averageSpeedKmH) * 60);
+  
+  console.log("Estimated time:", timeInMinutes, "minutes");
+  return timeInMinutes;
 };
 
 // Function to get a formatted address from coordinates (mock implementation)
@@ -71,14 +93,20 @@ export const getAddressFromCoordinates = async (location: Location): Promise<str
 export const getCoordinatesFromAddress = async (address: string): Promise<FormattedAddress> => {
   // In a real app, this would call a geocoding API
   // For this example, we'll generate a random location near NYC
+  console.log("getCoordinatesFromAddress called with:", address);
+  
+  // Ensure we return a semi-realistic result for the address
   const latOffset = (Math.random() - 0.5) * 0.05;
   const lngOffset = (Math.random() - 0.5) * 0.05;
   
-  return {
+  const result = {
     address,
     location: {
       lat: DEFAULT_LOCATION.lat + latOffset,
       lng: DEFAULT_LOCATION.lng + lngOffset
     }
   };
+  
+  console.log("Returning coordinates:", result);
+  return result;
 };

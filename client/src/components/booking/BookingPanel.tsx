@@ -44,25 +44,35 @@ export function BookingPanel({ userLocation, cabTypes, onBook, isMobile }: Booki
   useEffect(() => {
     async function setInitialAddress() {
       try {
+        console.log("Setting initial address from location:", userLocation);
         const address = await getAddressFromCoordinates(userLocation);
+        console.log("Got address from coordinates:", address);
+        
         setFormData(prev => ({
           ...prev,
           pickupAddress: address,
-          pickupLocation: userLocation
+          pickupLocation: { ...userLocation } // Create a fresh copy
         }));
+        
+        console.log("Form data updated with initial address");
       } catch (error) {
         console.error("Failed to get address from coordinates:", error);
       }
     }
     
-    if (userLocation.lat && userLocation.lng) {
+    if (userLocation && userLocation.lat && userLocation.lng) {
       setInitialAddress();
+    } else {
+      console.error("Invalid user location received:", userLocation);
     }
   }, [userLocation]);
 
   // Handle destination input change
   const handleDestinationChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
+    console.log("Destination input changed:", value);
+    
+    // Update form data with new destination address
     setFormData(prev => ({
       ...prev,
       destinationAddress: value
@@ -70,13 +80,29 @@ export function BookingPanel({ userLocation, cabTypes, onBook, isMobile }: Booki
 
     if (value.trim().length > 3) {
       try {
+        console.log("Getting coordinates for:", value);
         // Get coordinates from the address
         const result = await getCoordinatesFromAddress(value);
+        console.log("Coordinates result:", result);
+        
+        // Get the current form data for the pickup location (to avoid closure issue with stale state)
+        // Instead of using formData directly, we'll create a new reference to ensure we're using the latest state
+        const currentPickupLocation = { ...formData.pickupLocation };
+        console.log("Current pickup location:", currentPickupLocation);
+        
+        if (!currentPickupLocation.lat || !currentPickupLocation.lng) {
+          console.error("Invalid pickup location coordinates");
+          return;
+        }
         
         // Calculate distance and time
-        const distance = calculateDistance(formData.pickupLocation, result.location);
-        const time = estimateTravelTime(distance);
+        const distance = calculateDistance(currentPickupLocation, result.location);
+        console.log("Calculated distance:", distance);
         
+        const time = estimateTravelTime(distance);
+        console.log("Estimated time:", time);
+        
+        // Update form with calculated values
         setFormData(prev => ({
           ...prev,
           destinationLocation: result.location,
