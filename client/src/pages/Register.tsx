@@ -39,11 +39,6 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function Register() {
   const { toast } = useToast();
   
-  // Redirect if already authenticated
-  if (isAuthenticated()) {
-    return <Redirect to="/" />;
-  }
-  
   // Form definition
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -85,6 +80,11 @@ export default function Register() {
   const onSubmit = (data: RegisterFormData) => {
     registerMutation.mutate(data);
   };
+  
+  // Redirect if already authenticated
+  if (isAuthenticated()) {
+    return <Redirect to="/" />;
+  }
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

@@ -17,7 +17,7 @@ import {
   getAddressFromCoordinates 
 } from "@/lib/maps";
 import { calculatePrice, formatPrice, formatDistance, formatTime } from "@/lib/calculations";
-import { CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { CreditCard, ChevronDown, ChevronUp, Car } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 
 interface BookingPanelProps {

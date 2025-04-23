@@ -32,11 +32,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const { toast } = useToast();
   
-  // Redirect if already authenticated
-  if (isAuthenticated()) {
-    return <Redirect to="/" />;
-  }
-  
   // Form definition
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -73,6 +68,11 @@ export default function Login() {
   const onSubmit = (data: LoginFormData) => {
     loginMutation.mutate(data);
   };
+  
+  // Redirect if already authenticated
+  if (isAuthenticated()) {
+    return <Redirect to="/" />;
+  }
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
