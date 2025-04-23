@@ -1,15 +1,19 @@
-import User, { IUser } from './User';
-import Driver, { IDriver } from './Driver';
-import CabType, { ICabType } from './CabType';
-import Trip, { ITrip } from './Trip';
+const User = require('./User');
+const Driver = require('./Driver');
+const CabType = require('./CabType');
+const Trip = require('./Trip');
 
-export {
+// Export the models
+module.exports = {
   User,
   Driver,
   CabType,
-  Trip,
-  IUser,
-  IDriver,
-  ICabType,
-  ITrip
+  Trip
 };
+
+// Create type module to be able to reference these types
+// These will be accessible in TypeScript via namespace
+module.exports.IUser = User.IUser;
+module.exports.IDriver = Driver.IDriver;
+module.exports.ICabType = CabType.ICabType;
+module.exports.ITrip = Trip.ITrip;

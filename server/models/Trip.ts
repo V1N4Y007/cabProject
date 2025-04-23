@@ -1,9 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ITrip extends Document {
-  userId: mongoose.Types.ObjectId;
-  driverId: mongoose.Types.ObjectId | null;
-  cabTypeId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId | number;
+  driverId: mongoose.Types.ObjectId | number | null;
+  cabTypeId: mongoose.Types.ObjectId | number;
   pickupLat: number;
   pickupLng: number;
   destinationLat: number;
@@ -18,7 +18,7 @@ export interface ITrip extends Document {
   createdAt: Date;
 }
 
-const TripSchema: Schema = new Schema({
+const TripSchema = new Schema({
   userId: { 
     type: Schema.Types.ObjectId, 
     ref: 'User',
@@ -27,7 +27,7 @@ const TripSchema: Schema = new Schema({
   driverId: { 
     type: Schema.Types.ObjectId, 
     ref: 'Driver',
-    default: null
+    default: null 
   },
   cabTypeId: { 
     type: Schema.Types.ObjectId, 
@@ -69,15 +69,15 @@ const TripSchema: Schema = new Schema({
   status: { 
     type: String, 
     enum: ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'],
-    default: 'pending'
+    default: 'pending' 
   },
   startTime: { 
     type: Date, 
-    default: null
+    default: null 
   },
   endTime: { 
     type: Date, 
-    default: null
+    default: null 
   },
   createdAt: { 
     type: Date, 

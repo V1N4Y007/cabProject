@@ -12,7 +12,7 @@ export interface IDriver extends Document {
   createdAt: Date;
 }
 
-const DriverSchema: Schema = new Schema({
+const DriverSchema = new Schema({
   fullName: { 
     type: String, 
     required: true 
@@ -31,9 +31,7 @@ const DriverSchema: Schema = new Schema({
   },
   rating: { 
     type: Number, 
-    default: 5.0, 
-    min: 1, 
-    max: 5 
+    default: 5.0
   },
   isAvailable: { 
     type: Boolean, 

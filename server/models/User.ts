@@ -9,27 +9,28 @@ export interface IUser extends Document {
   createdAt: Date;
 }
 
-const UserSchema: Schema = new Schema({
+const UserSchema = new Schema({
   username: { 
     type: String, 
-    required: true, 
-    unique: true 
+    required: true,
+    unique: true
   },
   email: { 
     type: String, 
-    required: true, 
-    unique: true 
+    required: true,
+    unique: true
   },
   password: { 
     type: String, 
-    required: true 
+    required: true
   },
   fullName: { 
     type: String, 
     required: true 
   },
   phone: { 
-    type: String 
+    type: String, 
+    default: null 
   },
   createdAt: { 
     type: Date, 

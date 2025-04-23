@@ -8,14 +8,14 @@ export interface ICabType extends Document {
   seatingCapacity: number;
 }
 
-const CabTypeSchema: Schema = new Schema({
+const CabTypeSchema = new Schema({
   name: { 
     type: String, 
     required: true 
   },
   description: { 
-    type: String,
-    default: null
+    type: String, 
+    default: null 
   },
   basePrice: { 
     type: Number, 
@@ -27,7 +27,7 @@ const CabTypeSchema: Schema = new Schema({
   },
   seatingCapacity: { 
     type: Number, 
-    required: true
+    required: true 
   }
 });
 
