@@ -200,34 +200,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Create the trip
-      const trip = await storage.createTrip(tripData);
+      let trip = await storage.createTrip(tripData);
       
-      // Find an available driver for the trip
-      const nearbyDrivers = await storage.getNearbyDrivers(
+      // Find an available driver for the trip - increased search radius
+      let nearbyDrivers = await storage.getNearbyDrivers(
         tripData.pickupLat, 
-        tripData.pickupLng
+        tripData.pickupLng,
+        10 // Increase search radius to 10km
       );
+      
+      // If still no drivers found, get any available driver (regardless of distance)
+      if (nearbyDrivers.length === 0) {
+        const allDrivers = await storage.getAllDrivers();
+        nearbyDrivers = allDrivers.filter(driver => driver.isAvailable)
+          .slice(0, 1); // Just get the first available driver
+      }
       
       if (nearbyDrivers.length > 0) {
         const driver = nearbyDrivers[0];
         
         // Assign driver to the trip
-        const updatedTrip = await storage.updateTrip(trip.id, {
+        const updatedTripData = await storage.updateTrip(trip.id, {
           driverId: driver.id,
-          status: "confirmed"
+          status: "confirmed",
+          startTime: new Date() // Set start time
         });
+        // Make sure we have valid trip data
+        if (updatedTripData) {
+          trip = updatedTripData;
+        }
         
         // Update driver availability
         await storage.updateDriverAvailability(driver.id, false);
         
-        res.status(201).json(updatedTrip);
+        // Also update driver location to be near pickup point for better UX
+        await storage.updateDriverLocation(
+          driver.id, 
+          trip.pickupLat + (Math.random() - 0.5) * 0.01, // Slightly offset from pickup
+          trip.pickupLng + (Math.random() - 0.5) * 0.01
+        );
+        
+        console.log(`Trip ${trip.id} confirmed with driver ${driver.id}`);
       } else {
-        res.status(201).json(trip);
+        console.log(`No drivers found for trip ${trip.id}`);
       }
+      
+      res.status(201).json(trip);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input data", errors: error.errors });
       }
+      console.error("Error creating trip:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
@@ -299,18 +322,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only allow updating status for now
       const updateData = updateTripSchema.partial().parse(req.body);
       
-      const updatedTrip = await storage.updateTrip(tripId, updateData);
-      
-      // If cancelling trip, make driver available again
-      if (updateData.status === "cancelled" && trip.driverId) {
-        await storage.updateDriverAvailability(trip.driverId, true);
+      // Handle status transitions
+      if (updateData.status === 'completed' && trip.status === 'in_progress') {
+        // If completing a trip, set end time
+        updateData.endTime = new Date();
+      } else if (updateData.status === 'in_progress' && trip.status === 'confirmed') {
+        // If starting a trip, make sure start time is set
+        if (!trip.startTime) {
+          updateData.startTime = new Date();
+        }
       }
       
+      const updatedTrip = await storage.updateTrip(tripId, updateData);
+      
+      // If cancelling or completing trip, make driver available again
+      if ((updateData.status === 'cancelled' || updateData.status === 'completed') && trip.driverId) {
+        await storage.updateDriverAvailability(trip.driverId, true);
+        
+        // If completed, move driver to destination location
+        if (updateData.status === 'completed') {
+          await storage.updateDriverLocation(
+            trip.driverId,
+            trip.destinationLat,
+            trip.destinationLng
+          );
+        }
+      }
+      
+      console.log(`Trip ${trip.id} updated: ${trip.status} -> ${updateData.status}`);
       res.json(updatedTrip);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input data", errors: error.errors });
       }
+      console.error("Error updating trip:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Complete a trip (convenience endpoint)
+  app.post("/api/trips/:id/complete", authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const tripId = parseInt(req.params.id);
+      if (isNaN(tripId)) {
+        return res.status(400).json({ message: "Invalid trip ID" });
+      }
+      
+      const trip = await storage.getTrip(tripId);
+      if (!trip) {
+        return res.status(404).json({ message: "Trip not found" });
+      }
+      
+      // Ensure user owns the trip
+      if (trip.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      // Can only complete trips that are confirmed or in_progress
+      if (trip.status !== 'confirmed' && trip.status !== 'in_progress') {
+        return res.status(400).json({ 
+          message: "Cannot complete trip", 
+          details: "Trip must be confirmed or in progress to complete" 
+        });
+      }
+      
+      // If trip is confirmed but not started, start it first
+      let updatedTrip = trip;
+      if (trip.status === 'confirmed') {
+        const inProgressTrip = await storage.updateTrip(tripId, {
+          status: 'in_progress',
+          startTime: new Date()
+        });
+        if (inProgressTrip) {
+          updatedTrip = inProgressTrip;
+        }
+      }
+      
+      // Then complete the trip
+      const completedTripData = await storage.updateTrip(tripId, {
+        status: 'completed',
+        endTime: new Date()
+      });
+      
+      if (completedTripData) {
+        updatedTrip = completedTripData;
+      }
+      
+      // Make driver available again
+      if (trip.driverId) {
+        await storage.updateDriverAvailability(trip.driverId, true);
+        
+        // Move driver to destination location
+        await storage.updateDriverLocation(
+          trip.driverId,
+          trip.destinationLat,
+          trip.destinationLng
+        );
+      }
+      
+      console.log(`Trip ${trip.id} completed`);
+      res.json(updatedTrip);
+    } catch (error) {
+      console.error("Error completing trip:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
