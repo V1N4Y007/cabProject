@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import connectDB from "./db-mongo"; // Import MongoDB connection
+// Temporarily skip MongoDB connection to focus on core app features
+// import connectDB from "./db-mongo";
 
 const app = express();
 app.use(express.json());
@@ -38,8 +39,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Connect to MongoDB
-  await connectDB();
+  // Temporarily skip MongoDB connection
+  // await connectDB();
   
   const server = await registerRoutes(app);
 

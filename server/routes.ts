@@ -1,6 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { mongoDBStorage as storage } from "./mongodb-storage";
+import { storage } from "./storage"; // Temporarily using the MemStorage for now
 import { 
   insertUserSchema, 
   insertTripSchema, 

@@ -74,8 +74,12 @@ class MongoDBStorage {
   
   // Helper method to convert MongoDB user document to User type
   private convertMongoUserToUserType(user: IUser): UserType {
+    const id = user._id ? 
+      (typeof user._id === 'string' ? parseInt(user._id) : parseInt(user._id.toString())) : 
+      Math.floor(Math.random() * 1000000); // Fallback if _id is undefined
+      
     return {
-      id: typeof user._id === 'string' ? parseInt(user._id) : parseInt(user._id.toString()),
+      id,
       username: user.username,
       email: user.email,
       password: user.password,
