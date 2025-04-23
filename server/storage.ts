@@ -101,22 +101,33 @@ export class MemStorage implements IStorage {
   
   // Initialize some drivers with random locations
   private initDrivers() {
-    // Create several drivers with random locations near NYC
-    const nyc = { lat: 40.7128, lng: -74.0060 };
+    // Create drivers near multiple locations globally
+    const locations = [
+      { name: "NYC", lat: 40.7128, lng: -74.0060 },
+      { name: "Anand", lat: 22.5967198, lng: 72.8345504 }, // Anand, India
+      { name: "London", lat: 51.5074, lng: -0.1278 },
+      { name: "Tokyo", lat: 35.6762, lng: 139.6503 },
+      { name: "Sydney", lat: -33.8688, lng: 151.2093 }
+    ];
     
-    for (let i = 0; i < 10; i++) {
-      const latOffset = (Math.random() - 0.5) * 0.05;
-      const lngOffset = (Math.random() - 0.5) * 0.05;
-      
-      this.createDriver({
-        fullName: `Driver ${i + 1}`,
-        phone: `555-${1000 + i}`,
-        licensePlate: `ABC${1000 + i}`,
-        carModel: i % 3 === 0 ? "Toyota Camry" : i % 3 === 1 ? "Honda Accord" : "Ford Explorer",
-        currentLat: nyc.lat + latOffset,
-        currentLng: nyc.lng + lngOffset
-      });
-    }
+    // Create 5 drivers near each location (25 total)
+    locations.forEach((location, locationIndex) => {
+      for (let i = 0; i < 5; i++) {
+        const driverIndex = locationIndex * 5 + i;
+        // Create closer offset for better chance of finding drivers
+        const latOffset = (Math.random() - 0.5) * 0.02; // Smaller radius
+        const lngOffset = (Math.random() - 0.5) * 0.02;
+        
+        this.createDriver({
+          fullName: `Driver ${driverIndex + 1}`,
+          phone: `555-${1000 + driverIndex}`,
+          licensePlate: `ABC${1000 + driverIndex}`,
+          carModel: driverIndex % 3 === 0 ? "Toyota Camry" : driverIndex % 3 === 1 ? "Honda Accord" : "Ford Explorer",
+          currentLat: location.lat + latOffset,
+          currentLng: location.lng + lngOffset
+        });
+      }
+    });
   }
   
   // User methods
@@ -139,7 +150,12 @@ export class MemStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const id = this.userId++;
     const now = new Date();
-    const newUser: User = { ...user, id, createdAt: now };
+    const newUser: User = { 
+      ...user, 
+      id, 
+      createdAt: now,
+      phone: user.phone || null // Ensure phone is string | null, not undefined
+    };
     this.users.set(id, newUser);
     return newUser;
   }
@@ -158,24 +174,30 @@ export class MemStorage implements IStorage {
       driver => driver.isAvailable
     );
     
-    // Calculate distance and filter by max distance (in km)
-    return availableDrivers.filter(driver => {
+    // Calculate all distances
+    const driversWithDistance = availableDrivers.map(driver => {
       const distance = this.calculateDistance(
         { lat, lng },
         { lat: driver.currentLat, lng: driver.currentLng }
       );
-      return distance <= maxDistance;
-    }).sort((a, b) => {
-      const distA = this.calculateDistance(
-        { lat, lng },
-        { lat: a.currentLat, lng: a.currentLng }
-      );
-      const distB = this.calculateDistance(
-        { lat, lng },
-        { lat: b.currentLat, lng: b.currentLng }
-      );
-      return distA - distB;
+      return { driver, distance };
     });
+    
+    // Sort by distance
+    driversWithDistance.sort((a, b) => a.distance - b.distance);
+    
+    // First try with original max distance
+    let result = driversWithDistance
+      .filter(item => item.distance <= maxDistance)
+      .map(item => item.driver);
+    
+    // If no drivers found, gradually increase the search radius
+    if (result.length === 0 && driversWithDistance.length > 0) {
+      // Take the closest 3 drivers regardless of distance
+      result = driversWithDistance.slice(0, 3).map(item => item.driver);
+    }
+    
+    return result;
   }
   
   async createDriver(driver: InsertDriver): Promise<Driver> {
@@ -219,7 +241,11 @@ export class MemStorage implements IStorage {
   
   async createCabType(cabType: InsertCabType): Promise<CabType> {
     const id = this.cabTypeId++;
-    const newCabType: CabType = { ...cabType, id };
+    const newCabType: CabType = { 
+      ...cabType, 
+      id,
+      description: cabType.description || null // Ensure description is string | null, not undefined 
+    };
     this.cabTypes.set(id, newCabType);
     return newCabType;
   }
